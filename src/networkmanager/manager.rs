@@ -1,7 +1,3 @@
-pub mod wireless;
-pub mod access_point;
-
-pub mod statistics;
 
 use zbus::{Result, proxy, zvariant::OwnedObjectPath};
 

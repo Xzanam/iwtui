@@ -43,9 +43,8 @@ pub trait Device {
 
     interface = "org.freedesktop.NetworkManager.Device.Wireless",
     default_service = "org.freedesktop.NetworkManager", 
-    default_path = "/org/freedesktop/NetworkManager/Devices/2"
 )]
-pub trait Wireless {
+pub trait DeviceWireless {
     /// GetAccessPoints method
     fn get_access_points(&self) -> zbus::Result<Vec<zbus::zvariant::OwnedObjectPath>>;
 
@@ -108,7 +107,7 @@ pub trait WirelessExt {
 }
 
 // 4. Implement the extension for the generated WirelessProxy struct
-impl<'a> WirelessExt for WirelessProxy<'a> {
+impl<'a> WirelessExt for DeviceWirelessProxy<'a> {
     async fn get_all_access_point_proxies(&self) -> zbus::Result<Vec<super::access_point::AccessPointProxy<'_>>> {
         // Fetch the raw object paths from D-Bus
         let paths = self.get_all_access_points().await?;
