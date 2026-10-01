@@ -34,7 +34,7 @@ impl Widget for Header {
                 Block::default()
                     .borders(Borders::ALL)
                     .title(Line::from("IWTUI").centered()),
-            )
+            ).centered()
             .render(area, buf);
     }
 }
@@ -57,7 +57,7 @@ impl Widget for Footer {
                 Block::default()
                     .borders(Borders::ALL)
                     .title(Line::from("Navigation").centered()),
-            )
+            ).centered()
             .render(area, buf);
     }
 }
