@@ -28,10 +28,6 @@ impl Default for App {
             should_quit,
         }
     }
-    let mut app = app::App::default();
-
-    ratatui::run(|terminal| app.run(terminal));
-
 }
 
 impl App {
