@@ -1,27 +1,28 @@
 pub struct NetworkBackend { 
-
+    connection :  zbus::Connection 
 
 }
 
 impl NetworkBackend { 
     
-    fn new() -> Self{ 
-        
-        NetwokBackend { 
-            
-        }
+    pub async fn new() -> anyhow::Result<Self>{ 
 
+        let connection =  zbus::Connection::system().await?;
+
+        Ok(NetworkBackend { 
+            connection
+        })
     }
-    
-    async fn  scan(){ 
+
+    pub async fn  scan(){ 
         todo!()
     }
     
-    async fn connect() { 
+    pub async fn connect() { 
         todo!()
     }
     
-    async  fn disconnect() { 
+    pub async  fn disconnect() { 
         todo!()
     }
 }
