@@ -5,6 +5,7 @@ pub struct WifiDevice {
 }
 
 pub struct WifiNetwork { 
+    pub ssid : String
 
 }
 
