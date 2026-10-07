@@ -8,3 +8,7 @@ anyhow = "1.0.104"
 nmrs = "3.5.5"
 tokio = { version = "1.53.1", features = ["full"] }
 zbus = "5.19.0"
+color-eyre = "0.6.5"
+crossterm = "0.29.0"
+ratatui = "0.30.2"
+tokio = { version = "1.53.1", features = ["full"] }
