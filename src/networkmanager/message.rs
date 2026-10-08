@@ -1,4 +1,7 @@
-use super::models::WifiNetwork;
+
+use crate::ui::models::WifiNetwork;
+
+
 
 #[non_exhaustive]
 pub enum NetworkCommand {

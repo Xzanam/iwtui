@@ -1,6 +1,10 @@
-use super::{message::{NetworkCommand, NetworkEvent}, models::{WifiNetwork}};
+
+use super::{message::{NetworkCommand, NetworkEvent}};
+use crate::ui::models::{WifiBand, WifiNetwork};
+use tokio::sync::mpsc;
 
 
+#[derive(Debug)]
 pub struct NetworkBackend {
     nm: nmrs::NetworkManager,
     snapshot: nmrs::NetworkSnapshot,
@@ -8,15 +12,39 @@ pub struct NetworkBackend {
     event_tx: tokio::sync::mpsc::Sender<NetworkEvent>,
 }
 
-impl From<nmrs::Network> for super::models::WifiNetwork {
+impl From<nmrs::Network> for WifiNetwork {
     fn from(item: nmrs::Network) -> Self {
         WifiNetwork {
             ssid: item.ssid, //Need to merge this with  UI Model
+            security : "WPA".to_string(), 
+            band : WifiBand::B5, 
+            strength : item.strength.unwrap().into()
         }
     }
 }
 
+pub struct NetworkHandle { 
+    pub command_tx : mpsc::Sender<NetworkCommand>, 
+    pub event_rx :  mpsc::Receiver<NetworkEvent>
+
+}
 impl NetworkBackend {
+    
+    pub async  fn spawn() -> anyhow::Result<NetworkHandle> { 
+    let (command_tx, command_rx) = tokio::sync::mpsc::channel(1024);
+    let (event_tx, event_rx) = tokio::sync::mpsc::channel(1024);
+        
+        let mut backend = Self::new(command_rx, event_tx).await?;
+        
+        tokio::spawn(async  move { 
+            if let Err(err) = backend.run().await { 
+                eprintln!("Network Backend Stopped : {}" , err);
+            }
+            
+        });
+        
+        Ok(NetworkHandle { command_tx, event_rx })
+    }
     pub async fn new(
         command_rx: tokio::sync::mpsc::Receiver<NetworkCommand>,
         event_tx: tokio::sync::mpsc::Sender<NetworkEvent>,
@@ -31,13 +59,14 @@ impl NetworkBackend {
         })
     }
 
+
     pub async fn run(&mut self) -> anyhow::Result<()> {
         while let Some(command) = self.command_rx.recv().await {
             match command {
                 NetworkCommand::Scan => {
-                    self.event_tx.send(NetworkEvent::ScanStarted);
+                    self.event_tx.send(NetworkEvent::ScanStarted).await?;
                     let result = self.scan().await?;
-                    self.event_tx.send(NetworkEvent::ScanCompleted(result));
+                    self.event_tx.send(NetworkEvent::ScanCompleted(result)).await?;
                 }, 
 
                 _ => {}
@@ -46,13 +75,14 @@ impl NetworkBackend {
 
         Ok(())
     }
+    
 
     pub async fn scan(&self) -> anyhow::Result<Vec<WifiNetwork>> {
         self.nm.scan_networks(None).await?;
-
         let networks = self.nm.list_networks(None).await?;
 
         Ok(networks.into_iter().map(WifiNetwork::from).collect())
+
     }
 
     pub async fn get_networks(&self) -> Option<Vec<WifiNetwork>> {
