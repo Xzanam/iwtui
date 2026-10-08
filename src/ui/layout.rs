@@ -1,12 +1,11 @@
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    style::{Color, Style},
     text::Line,
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, StatefulWidget, Widget},
+    widgets::{Block, Borders, Paragraph, Widget},
 };
 
-use super::models::{ConnectionStatus, Network};
+use super::models::{ConnectionStatus};
 
 #[derive(Default, Debug)]
 pub struct Header {
@@ -37,12 +36,6 @@ impl Widget for Header {
             ).centered()
             .render(area, buf);
     }
-}
-
-#[derive(Default, Debug)]
-pub struct NetworkList {
-    state: ListState,
-    networks: Vec<Network>,
 }
 
 #[derive(Default, Debug)]

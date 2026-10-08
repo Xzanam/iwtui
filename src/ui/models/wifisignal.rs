@@ -62,6 +62,13 @@ impl SignalStrength {
     }
 }
 
+
+impl From<u8> for SignalStrength { 
+    fn from(val : u8)  ->  Self { 
+        SignalStrength(val)
+    }
+}
+
 impl From<SignalStrength> for Cell<'static> { 
     fn from(signal: SignalStrength) -> Self { 
         signal.to_table_cell()

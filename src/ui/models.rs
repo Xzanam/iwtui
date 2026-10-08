@@ -13,8 +13,7 @@ pub enum ConnectionStatus {
 }
 
 #[derive(Default, Debug)]
-pub struct Network {
-    pub id: u16,
+pub struct WifiNetwork {
     pub ssid: String,
     pub security: String,
     pub band: WifiBand,
