@@ -1,57 +1,102 @@
-use crossterm::event::{self, Event, KeyCode};
-use anyhow::Result;
-use ratatui::{Frame, layout::{Constraint, Layout, Margin, Rect}, style::{Color, Style}, text::Line, widgets::{Block, Borders, Cell, Padding, Row, Table, TableState}};
+use std::time::Duration;
 
-use crate::ui::{layout::{Footer, Header}, models::{ConnectionStatus, Network, WifiBand, wifisignal::SignalStrength}};
+use anyhow::Result;
+use crossterm::event::{self, Event, KeyCode};
+use nmrs::Network;
+use ratatui::{
+    Frame,
+    layout::{Constraint, Layout, Margin, Rect},
+    style::{Color, Style},
+    text::Line,
+    widgets::{Block, Borders, Cell, Padding, Row, Table, TableState},
+};
+use tokio::sync::mpsc;
+
+use crate::{
+    networkmanager::{
+        backend::NetworkBackend,
+        message::{NetworkCommand, NetworkEvent},
+    },
+    ui::{
+        layout::{Footer, Header},
+        models::{ConnectionStatus, WifiBand, WifiNetwork, wifisignal::SignalStrength},
+    },
+};
 
 #[derive(Debug)]
 pub struct App {
-    available_networks: Vec<Network>,
+    command_tx: mpsc::Sender<NetworkCommand>,
+    event_rx: mpsc::Receiver<NetworkEvent>,
+    available_networks: Vec<WifiNetwork>,
     table_state: TableState,
     should_quit: bool,
 }
 
-impl Default for App {
-    fn default() -> Self {
-        let available_networks = get_dummy_networks();
-
+impl App {
+    pub fn new(
+        command_tx: mpsc::Sender<NetworkCommand>,
+        event_rx: mpsc::Receiver<NetworkEvent>,
+    ) -> Self {
+        let available_networks = Vec::new();
         let mut table_state = TableState::default();
-
         table_state.select_first();
         table_state.select_first_column();
+
+        command_tx.try_send(NetworkCommand::Scan);
 
         let should_quit = false;
 
         App {
+            command_tx,
+            event_rx,
             available_networks,
             table_state,
             should_quit,
         }
     }
-}
-
-impl App {
     pub fn run(&mut self, terminal: &mut ratatui::DefaultTerminal) -> Result<()> {
         while !self.should_quit {
             terminal.draw(|frame| self.render(frame))?;
 
-            if let Some(key) = event::read()?.as_key_press_event() {
-                match key.code {
-                    KeyCode::Char('q') => self.should_quit = true,
-                    KeyCode::Char('j') | KeyCode::Down => self.table_state.select_next(),
-                    KeyCode::Char('k') | KeyCode::Up => self.table_state.select_previous(),
-                    KeyCode::Enter =>  self.try_connect(),
-                    _ => (),
+            self.process_network_events();
+
+            if event::poll(Duration::from_millis(50))? {
+                if let Some(key) = event::read()?.as_key_press_event() {
+                    match key.code {
+                        KeyCode::Char('q') => self.should_quit = true,
+                        KeyCode::Char('j') | KeyCode::Down => self.table_state.select_next(),
+                        KeyCode::Char('k') | KeyCode::Up => self.table_state.select_previous(),
+                        KeyCode::Char('s') => self.scan(),
+                        KeyCode::Char('p') =>  { 
+                            println!("Networks : {:?} ", self.available_networks);
+                        }
+                        KeyCode::Enter => self.try_connect(),
+                        _ => (),
+                    }
                 }
             }
         }
         Ok(())
-
     }
-    
-    fn  try_connect(&mut self) { 
-        println!("trying  to connect");
 
+    fn process_network_events(&mut self) {
+        while let Ok(event) = self.event_rx.try_recv() {
+            self.handle_network_event(event);
+        }
+    }
+
+    fn handle_network_event(&mut self, event: NetworkEvent) {
+        match event {
+            NetworkEvent::ScanCompleted(networks) => {
+                self.available_networks = networks;
+            }
+            _ => {
+            }
+        }
+    }
+
+    fn try_connect(&mut self) {
+        println!("trying  to connect");
     }
 
     fn render(&mut self, frame: &mut Frame) {
@@ -64,13 +109,10 @@ impl App {
             vertical: 1,
             horizontal: 2,
         }));
-        
 
         self.render_header(frame, areas[0]);
         self.render_table(frame, areas[1]);
         self.render_footer(frame, areas[2]);
-
-   
     }
 
     fn handle_input(&self, event: Event) {
@@ -123,19 +165,21 @@ impl App {
         frame.render_stateful_widget(table, area, &mut self.table_state);
     }
     fn render_footer(&mut self, frame: &mut Frame, area: Rect) {
-             frame.render_widget(
+        frame.render_widget(
             Footer {
                 help_text: String::from(
                     "Press q to quit |  j k or ↑ ↓ to navigate |  Enter to select",
                 ),
-            }, area
+            },
+            area,
         );
     }
+
+    fn scan(&self) {
+        self.command_tx.try_send(NetworkCommand::Scan);
+    }
 }
-
-
-
-fn get_dummy_networks() -> Vec<Network> {
+/* fn get_dummy_networks() -> Vec<Network> {
     let mut networks = Vec::new();
 
     networks.push(Network {
@@ -172,4 +216,4 @@ fn get_dummy_networks() -> Vec<Network> {
 
     networks
 }
-
+ */
